@@ -1,0 +1,99 @@
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Integer,
+    String,
+    Float,
+    Date,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Text,
+)
+from datetime import datetime, timezone
+from sqlalchemy.orm import relationship
+from db.session import Base
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=True)
+    height = Column(Float, nullable=True)
+    weight = Column(Float, nullable=True)
+    sex = Column(String, nullable=False)
+
+    logs = relationship("DailyLog", back_populates="user", cascade="all, delete-orphan")
+    suggestions = relationship(
+        "Suggestion", back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class DailyLog(Base):
+    __tablename__ = "daily_logs"
+
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    date = Column(Date, primary_key=True)
+    mood = Column(String, nullable=True)
+    sleep_hours = Column(Float, nullable=True)
+
+    user = relationship("User", back_populates="logs")
+    workouts = relationship(
+        "Workout", back_populates="daily_log", cascade="all, delete-orphan"
+    )
+
+
+class Workout(Base):
+    __tablename__ = "workouts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    log_date = Column(Date, index=True)
+
+    type = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    duration_minutes = Column(Integer, nullable=True)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["user_id", "log_date"],
+            ["daily_logs.user_id", "daily_logs.date"],
+            ondelete="CASCADE",
+        ),
+    )
+
+    summary = relationship(
+        "Summary", back_populates="workout", uselist=False, cascade="all, delete-orphan"
+    )
+    daily_log = relationship("DailyLog", back_populates="workouts")
+
+    def __repr__(self):
+        return f"<Workout(id={self.id}, user_id={self.user_id}, type={self.type})>"
+
+
+class Summary(Base):
+    __tablename__ = "summaries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    workout_id = Column(
+        Integer, ForeignKey("workouts.id", ondelete="CASCADE"), unique=True
+    )
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    workout = relationship("Workout", back_populates="summary")
+
+
+class Suggestion(Base):
+    __tablename__ = "suggestions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    content = Column(Text, nullable=False)
+    week_start = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="suggestions")

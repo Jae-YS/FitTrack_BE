@@ -1,0 +1,23 @@
+# Web framework
+fastapi[all]
+
+# ORM and database
+sqlalchemy>=2.0
+psycopg2-binary
+
+# Database migrations
+alembic
+
+# Background task queue
+celery
+redis
+
+# Environment variable management
+python-dotenv
+
+# OpenAI LLM integration
+openai
+
+# Optional: typing support, dev tools
+uvicorn[standard]
+httpx
