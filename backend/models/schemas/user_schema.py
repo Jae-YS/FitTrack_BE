@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+from datetime import date
 
 
 class UserCreate(BaseModel):
@@ -8,6 +9,14 @@ class UserCreate(BaseModel):
     height: float
     weight: float
     sex: str
+    password: str
+
+    race_date: Optional[date]
+    race_level: Optional[str]
+    pr_5k: Optional[float]
+    pr_10k: Optional[float]
+    pr_half: Optional[float]
+    pr_full: Optional[float]
 
 
 class UserOut(BaseModel):

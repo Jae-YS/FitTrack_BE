@@ -7,6 +7,10 @@ class WorkoutBase(BaseModel):
     description: Optional[str]
     duration_minutes: Optional[int]
 
+    distance_km: Optional[float]
+    pace_min_per_km: Optional[float]
+    effort_level: Optional[str]
+
 
 class WorkoutCreate(WorkoutBase):
     user_id: int

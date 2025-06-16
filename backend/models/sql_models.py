@@ -23,6 +23,14 @@ class User(Base):
     height = Column(Float, nullable=True)
     weight = Column(Float, nullable=True)
     sex = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=False)
+
+    race_date = Column(Date, nullable=True)
+    race_level = Column(String, nullable=True)
+    pr_5k = Column(Float, nullable=True)
+    pr_10k = Column(Float, nullable=True)
+    pr_half = Column(Float, nullable=True)
+    pr_full = Column(Float, nullable=True)
 
     logs = relationship("DailyLog", back_populates="user", cascade="all, delete-orphan")
     suggestions = relationship(
@@ -53,9 +61,14 @@ class Workout(Base):
     user_id = Column(Integer, index=True)
     log_date = Column(Date, index=True)
 
-    type = Column(String, nullable=False)
+    type = Column(String, nullable=False)  # e.g. "easy", "tempo", "long", "recovery"
     description = Column(String, nullable=True)
     duration_minutes = Column(Integer, nullable=True)
+
+    # NEW FIELDS
+    distance_km = Column(Float, nullable=True)
+    pace_min_per_km = Column(Float, nullable=True)
+    effort_level = Column(String, nullable=True)  # e.g. "easy", "moderate", "hard"
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -69,9 +82,6 @@ class Workout(Base):
         "Summary", back_populates="workout", uselist=False, cascade="all, delete-orphan"
     )
     daily_log = relationship("DailyLog", back_populates="workouts")
-
-    def __repr__(self):
-        return f"<Workout(id={self.id}, user_id={self.user_id}, type={self.type})>"
 
 
 class Summary(Base):

@@ -5,6 +5,7 @@ from .user_schema import UserOut
 
 class LoginRequest(BaseModel):
     email: EmailStr
+    password: str
 
 
 class LoginResponse(BaseModel):

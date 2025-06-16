@@ -82,6 +82,9 @@ def add_workout_to_log(
         type=workout_data.type,
         description=workout_data.description,
         duration_minutes=workout_data.duration_minutes,
+        distance_km=workout_data.distance_km,
+        pace_min_per_km=workout_data.pace_min_per_km,
+        effort_level=workout_data.effort_level,
     )
     db.add(workout)
     db.commit()

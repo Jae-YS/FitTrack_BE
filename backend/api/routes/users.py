@@ -1,28 +1,42 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from models.sql_models import User
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 from models.schemas.user_schema import UserCreate, UserOut
 from models.schemas.auth_schema import LoginRequest, LoginResponse
-from services.user_service import get_user_by_email, get_user_by_id, create_user
+from services.user_service import authenticate_user, get_user_by_id, create_user
 from db.session import get_db
+from core.security import create_session_token
+
 
 router = APIRouter()
 
 
-@router.post("/login", response_model=LoginResponse)
-def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
-    user = get_user_by_email(db, data.email)
-    if user:
-        request.session["user_id"] = user.id
-        return {"user": user, "is_new": False}
-    return {"user": None, "is_new": True}
+@router.post("/login")
+def login(data: LoginRequest, response: Response, db: Session = Depends(get_db)):
+    user = authenticate_user(data.email, data.password, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    response.set_cookie(
+        key="session",
+        value=create_session_token(user),
+        httponly=True,
+        samesite="Lax",  # or "None" if cross-origin
+        secure=True,  # must be True in production with HTTPS
+        max_age=60 * 60 * 24 * 7,
+    )
+
+    return {"user": user, "is_new": False}
 
 
 @router.post("/register", response_model=UserOut)
 def register(user: UserCreate, db: Session = Depends(get_db)):
-    existing = get_user_by_email(db, user.email)
-    if existing:
+    existing_user = db.query(User).filter_by(email=user.email).first()
+    if existing_user:
         raise HTTPException(status_code=400, detail="User already exists")
-    return create_user(db, user)
+
+    new_user = create_user(db, user)
+    return new_user
 
 
 @router.get("/me", response_model=UserOut)
@@ -39,6 +53,6 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/logout")
-def logout(request: Request):
-    request.session.clear()
+def logout(response: Response):
+    response.delete_cookie("session")
     return {"message": "Logged out"}
