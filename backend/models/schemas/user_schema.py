@@ -11,12 +11,12 @@ class UserCreate(BaseModel):
     sex: str
     password: str
 
-    race_date: Optional[date]
+    race_date: Optional[date] = None
     race_level: Optional[str]
-    pr_5k: Optional[float]
-    pr_10k: Optional[float]
-    pr_half: Optional[float]
-    pr_full: Optional[float]
+    pr_5k: Optional[float] = None
+    pr_10k: Optional[float] = None
+    pr_half: Optional[float] = None
+    pr_full: Optional[float] = None
 
 
 class UserOut(BaseModel):

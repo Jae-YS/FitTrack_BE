@@ -39,7 +39,7 @@ async def log_day(
 ):
     log = log_entry(db, entry)
     background_tasks.add_task(trigger_summary_generation, entry.user_id, db)
-    return {"status": "logged", "log_id": log.id}
+    return {"status": "logged", "user_id": log.user_id, "date": log.date}
 
 
 @router.post("/workouts")
