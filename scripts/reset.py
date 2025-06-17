@@ -55,7 +55,6 @@ def reset_db():
             )
             db.add(log)
 
-            # Simulate rotating training pattern
             workout_plan = WORKOUT_PLAN[i % len(WORKOUT_PLAN)]
             workout_type, desc, duration, distance, effort = workout_plan
 
