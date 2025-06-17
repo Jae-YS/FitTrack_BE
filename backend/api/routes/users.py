@@ -1,10 +1,10 @@
-from models.sql_models import User
+from backend.models.sql_models import User
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
-from models.schemas.user_schema import UserCreate, UserOut
-from models.schemas.auth_schema import LoginRequest, LoginResponse
-from services.user_service import authenticate_user, get_user_by_id, create_user
-from db.session import get_db
+from backend.models.schemas.user_schema import UserCreate, UserOut
+from backend.models.schemas.auth_schema import LoginRequest, LoginResponse
+from backend.services.user_service import authenticate_user, get_user_by_id, create_user
+from backend.db.session import get_db
 
 
 router = APIRouter()

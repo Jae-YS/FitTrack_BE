@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from datetime import date
 from typing import List, Optional
-from .workout_schema import WorkoutCreate, WorkoutOut
+from backend.models.schemas.workout_schema import WorkoutCreate, WorkoutOut
 
 
 class DailyLogCreate(BaseModel):

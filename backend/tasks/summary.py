@@ -1,5 +1,5 @@
-from services.llm.summary_generator import generate_summary_from_logs
-from models.sql_models import DailyLog
+from backend.services.llm.summary_generator import generate_summary_from_logs
+from backend.models.sql_models import DailyLog
 from sqlalchemy.orm import Session
 from datetime import timedelta, date
 

@@ -12,6 +12,7 @@ class UserCreate(BaseModel):
     password: str
 
     race_date: Optional[date] = None
+    race_type: Optional[str] = None
     race_level: Optional[str]
     pr_5k: Optional[float] = None
     pr_10k: Optional[float] = None

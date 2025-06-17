@@ -1,11 +1,8 @@
-import os
 from openai import AsyncOpenAI
-from dotenv import load_dotenv
+from backend.core.config import settings
 
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
 
-if not api_key:
+if not settings.OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY not found in environment variables.")
 
-client = AsyncOpenAI(api_key=api_key)
+client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)

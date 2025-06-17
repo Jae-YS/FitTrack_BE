@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from .user_schema import UserOut
+from backend.models.schemas.user_schema import UserOut
 
 
 class LoginRequest(BaseModel):

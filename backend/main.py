@@ -1,7 +1,7 @@
 import os
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
-from api.routes import users, logs
+from backend.api.routes import users, logs
 from starlette.middleware.sessions import SessionMiddleware
 
 

@@ -1,8 +1,9 @@
 from datetime import date
+from backend.services.calories import calculate_calories
 from sqlalchemy.orm import Session
-from models.sql_models import DailyLog, Workout
-from models.schemas import DailyLogCreate
-from models.schemas import WorkoutCreate
+from backend.models.sql_models import DailyLog, User, Workout
+from backend.models.schemas import DailyLogCreate
+from backend.models.schemas import WorkoutCreate
 
 
 def log_entry(db: Session, entry_data: DailyLogCreate) -> DailyLog:
@@ -74,18 +75,33 @@ def get_or_create_daily_log(db: Session, user_id: int, log_date: date) -> DailyL
 def add_workout_to_log(
     db: Session, user_id: int, workout_data: WorkoutCreate
 ) -> Workout:
-    today = date.today()
-    get_or_create_daily_log(db, user_id, today)
+    log_date = workout_data.log_date or date.today()
+
+    # Ensure a daily log exists
+    get_or_create_daily_log(db, user_id, log_date)
+
+    # Fetch user to access weight for calorie calculation
+    user = db.query(User).filter_by(id=user_id).first()
+    if not user or not user.weight:
+        raise ValueError("User not found or weight not set")
+
+    # Calculate calories using MET-based logic
+    duration = workout_data.duration_minutes or 0
+    calories = calculate_calories(workout_data.type, duration, user.weight)
+
+    # Create the workout with calories burned
     workout = Workout(
         user_id=user_id,
-        log_date=today,
+        log_date=log_date,
         type=workout_data.type,
         description=workout_data.description,
         duration_minutes=workout_data.duration_minutes,
         distance_km=workout_data.distance_km,
         pace_min_per_km=workout_data.pace_min_per_km,
         effort_level=workout_data.effort_level,
+        calories_burned=round(calories, 2),
     )
+
     db.add(workout)
     db.commit()
     db.refresh(workout)

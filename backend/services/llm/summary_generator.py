@@ -1,5 +1,5 @@
-from services.llm.openai_client import client
-from prompts.summary import weekly_summary_prompt
+from backend.services.llm.openai_client import client
+from backend.prompts.summary import weekly_summary_prompt
 
 
 async def generate_summary_from_logs(user_id: str, logs: list[dict]) -> str:

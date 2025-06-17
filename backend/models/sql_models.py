@@ -11,7 +11,7 @@ from sqlalchemy import (
 )
 from datetime import datetime, timezone
 from sqlalchemy.orm import relationship
-from db.session import Base
+from backend.db.session import Base
 
 
 class User(Base):
@@ -26,6 +26,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
 
     race_date = Column(Date, nullable=True)
+    race_type = Column(String, nullable=True)
     race_level = Column(String, nullable=True)
     pr_5k = Column(Float, nullable=True)
     pr_10k = Column(Float, nullable=True)
@@ -61,14 +62,15 @@ class Workout(Base):
     user_id = Column(Integer, index=True)
     log_date = Column(Date, index=True)
 
-    type = Column(String, nullable=False)  # e.g. "easy", "tempo", "long", "recovery"
+    type = Column(String, nullable=False)
     description = Column(String, nullable=True)
     duration_minutes = Column(Integer, nullable=True)
 
-    # NEW FIELDS
     distance_km = Column(Float, nullable=True)
     pace_min_per_km = Column(Float, nullable=True)
-    effort_level = Column(String, nullable=True)  # e.g. "easy", "moderate", "hard"
+    effort_level = Column(String, nullable=True)
+
+    calories_burned = Column(Float, nullable=True)
 
     __table_args__ = (
         ForeignKeyConstraint(

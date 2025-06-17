@@ -1,15 +1,15 @@
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
+from pydantic_settings import BaseSettings
+from pathlib import Path
 
 
-class Settings:
-    DATABASE_URL: str = os.getenv("DATABASE_URL")
-    SECRET_KEY: str = os.getenv("SECRET_KEY")
-    ALLOWED_ORIGINS: list[str] = os.getenv(
-        "ALLOWED_ORIGINS", "http://localhost:5173"
-    ).split(",")
+class Settings(BaseSettings):
+    DATABASE_URL: str
+    SECRET_KEY: str
+    OPENAI_API_KEY: str
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173"]
+
+    class Config:
+        env_file = Path(__file__).resolve().parent.parent / ".env"
 
 
 settings = Settings()

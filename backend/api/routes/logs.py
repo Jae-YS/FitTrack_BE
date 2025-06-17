@@ -1,23 +1,20 @@
 from datetime import date
+from http.client import HTTPException
 from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
-from models.schemas.workout_schema import WorkoutCreate
-from models.schemas.log_schema import DailyLogCreate
-from models.sql_models import DailyLog
-from services.logging_service import (
-    log_entry,
+from backend.models.schemas.workout_schema import WorkoutCreate
+from backend.models.schemas.log_schema import (
+    DailyLogCreate,
 )
-from tasks.summary import trigger_summary_generation
-from db.session import get_db
-from fastapi import APIRouter, Depends
-from datetime import date
+from backend.models.sql_models import DailyLog
+from backend.services.logging_service import log_entry, add_workout_to_log
+from backend.tasks.summary import trigger_summary_generation
+from backend.db.session import get_db
 
-from services.dashboard_service import (
+from backend.services.dashboard_service import (
     build_user_history,
     build_weekly_dashboard_data,
 )
-from services.logging_service import add_workout_to_log
-
 
 router = APIRouter()
 

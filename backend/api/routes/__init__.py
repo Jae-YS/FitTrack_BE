@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from api.routes import users, logs
+from backend.api.routes import users, logs
 
 router = APIRouter()
 router.include_router(users.router)

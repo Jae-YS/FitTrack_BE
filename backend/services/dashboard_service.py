@@ -1,42 +1,62 @@
+from collections import defaultdict
 from datetime import date, timedelta
 from sqlalchemy.orm import Session
-from models.sql_models import DailyLog, Workout
+from backend.models.sql_models import DailyLog, Workout
 
 
-def get_last_n_days_logs_and_workouts(user_id: int, days: int, db: Session):
-    today = date.today()
-    start_date = today - timedelta(days=days - 1)
-
+def get_logs_and_workouts_between(
+    user_id: int, start_date: date, end_date: date, db: Session
+):
     logs = (
         db.query(DailyLog)
-        .filter(DailyLog.user_id == user_id, DailyLog.date.between(start_date, today))
+        .filter(
+            DailyLog.user_id == user_id, DailyLog.date.between(start_date, end_date)
+        )
         .all()
     )
-
     workouts = (
         db.query(Workout)
-        .filter(Workout.user_id == user_id, Workout.log_date.between(start_date, today))
+        .filter(
+            Workout.user_id == user_id, Workout.log_date.between(start_date, end_date)
+        )
         .all()
     )
-
     return logs, workouts
 
 
 def build_weekly_dashboard_data(user_id: int, db: Session):
-    logs, workouts = get_last_n_days_logs_and_workouts(user_id, 7, db)
     today = date.today()
-    week_ago = today - timedelta(days=6)
+    last_sunday = today - timedelta(
+        days=today.weekday() + 1 if today.weekday() < 6 else 0
+    )
+    week_end = last_sunday + timedelta(days=6)
+
+    logs, workouts = get_logs_and_workouts_between(user_id, last_sunday, week_end, db)
+
+    workouts_by_date = defaultdict(list)
+    for w in workouts:
+        workouts_by_date[w.log_date].append(w)
 
     day_data = []
     for i in range(7):
-        d = week_ago + timedelta(days=i)
-        workout = next((w for w in workouts if w.log_date == d), None)
+        current_date = last_sunday + timedelta(days=i)
+        w_today = workouts_by_date.get(current_date, [])
+        total_cals = sum(w.calories_burned or 0 for w in w_today)
+
         day_data.append(
             {
-                "day": d.strftime("%A"),
-                "date": d.strftime("%m/%d"),
-                "completed": workout is not None,
-                "expectedCalories": 0,
+                "day": current_date.strftime("%A"),
+                "date": current_date.strftime("%m/%d"),
+                "completed": bool(w_today),
+                "expectedCalories": round(total_cals),
+                "workouts": [
+                    {
+                        "type": w.type,
+                        "durationMinutes": w.duration_minutes,
+                        "calories_burned": w.calories_burned,
+                    }
+                    for w in w_today
+                ],
             }
         )
 
@@ -45,7 +65,7 @@ def build_weekly_dashboard_data(user_id: int, db: Session):
             "date": w.log_date.isoformat(),
             "type": w.type,
             "duration": w.duration_minutes,
-            "calories": 0,
+            "calories": w.calories_burned,
             "description": w.description,
             "summary": "Generated summary here",
         }
@@ -56,12 +76,19 @@ def build_weekly_dashboard_data(user_id: int, db: Session):
 
 
 def build_user_history(user_id: int, db: Session):
-    logs, workouts = get_last_n_days_logs_and_workouts(user_id, 90, db)
+    today = date.today()
+    start_date = today - timedelta(days=41)  # inclusive
+    logs, workouts = get_logs_and_workouts_between(user_id, start_date, today, db)
+
+    workouts_by_date = defaultdict(list)
+    for w in workouts:
+        workouts_by_date[w.log_date].append(w)
 
     summary_data = []
     for log in logs:
-        matching_workouts = [w for w in workouts if w.log_date == log.date]
-        total_minutes = sum(w.duration_minutes for w in matching_workouts)
+        total_minutes = sum(
+            w.duration_minutes for w in workouts_by_date.get(log.date, [])
+        )
         summary_data.append(
             {
                 "date": log.date.isoformat(),
@@ -75,7 +102,7 @@ def build_user_history(user_id: int, db: Session):
             "date": w.log_date.isoformat(),
             "type": w.type,
             "duration": w.duration_minutes,
-            "calories": 0,
+            "calories": w.calories_burned or 0,
             "description": w.description,
             "summary": "Generated summary placeholder",
         }
