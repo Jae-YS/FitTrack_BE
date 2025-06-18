@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from typing import Optional, List
 from datetime import date
-from typing import List, Optional
 from backend.models.schemas.workout_schema import WorkoutCreate, WorkoutOut
 
 
@@ -19,5 +19,4 @@ class DailyLogOut(BaseModel):
     sleep_hours: Optional[float]
     workouts: List[WorkoutOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

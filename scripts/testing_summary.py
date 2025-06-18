@@ -1,10 +1,3 @@
-import sys
-import os
-
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
-)
-
 import asyncio
 from backend.services.llm.summary_generator import generate_summary_from_logs
 from backend.services.llm.workout_generator import generate_first_week_plan

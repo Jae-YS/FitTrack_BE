@@ -1,7 +1,10 @@
+from backend.services.llm.parseSuggestions import parse_suggestions
 from sqlalchemy.orm import Session
 from backend.models.sql_models import User
 from backend.models.schemas import UserCreate
 from backend.core.security import hash_password, verify_password
+from backend.services.llm.workout_generator import generate_first_week_plan
+from datetime import date, datetime, timezone
 
 
 def authenticate_user(email: str, password: str, db: Session):
@@ -15,7 +18,7 @@ def get_user_by_id(db: Session, user_id: int) -> User | None:
     return db.query(User).filter_by(id=user_id).first()
 
 
-def create_user(db: Session, user_data: UserCreate) -> User:
+async def create_user(db: Session, user_data: UserCreate) -> User:
     user_dict = user_data.dict()
     raw_password = user_dict.pop("password")
     user_dict["hashed_password"] = hash_password(raw_password)
@@ -24,4 +27,29 @@ def create_user(db: Session, user_data: UserCreate) -> User:
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    plan_text = await generate_first_week_plan(
+        race=new_user.race_type,
+        level=new_user.race_level,
+        today=date.today().isoformat(),
+        pr_5k=new_user.pr_5k,
+        pr_10k=new_user.pr_10k,
+        pr_half=new_user.pr_half,
+        pr_full=new_user.pr_full,
+    )
+
+    today = datetime.now(timezone.utc).date()
+    week = today.isocalendar().week
+
+    suggestions = parse_suggestions(
+        plan_text,
+        user_id=new_user.id,
+        week=week,
+        base_date=today,
+    )
+
+    for suggestion in suggestions:
+        db.add(suggestion)
+
+    db.commit()
     return new_user

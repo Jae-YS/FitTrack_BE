@@ -2,20 +2,34 @@ from backend.services.llm.openai_client import client
 from backend.prompts.workout import runner_training_plan_prompt
 
 
-async def generate_first_week_plan(user_id: str, logs: list[dict]) -> str:
-    if not logs:
-        return "No activity data available."
+async def generate_first_week_plan(
+    race: str,
+    level: str,
+    today: str,
+    pr_5k: float | None,
+    pr_10k: float | None,
+    pr_half: float | None,
+    pr_full: float | None,
+) -> str:
+    pr_lines = []
+    if pr_5k:
+        pr_lines.append(f"5K - {pr_5k} min")
+    if pr_10k:
+        pr_lines.append(f"10K - {pr_10k} min")
+    if pr_half:
+        pr_lines.append(f"Half Marathon - {pr_half} min")
+    if pr_full:
+        pr_lines.append(f"Full Marathon - {pr_full} min")
+
+    log_text = "\n".join(pr_lines) if pr_lines else "No personal records provided."
+
+    print(log_text)
 
     prompt = runner_training_plan_prompt(
-        race="Half Marathon",
-        initial_level="Intermediate",
-        log_text="""
-        5K 26:45 (April 2025)
-        10K 55:30 (June 202)
-        Half Marathon 2:05:12 (October 2025)
-        Full Marathon N/A
-        """,
-        today="2025-06-17",
+        race=race,
+        initial_level=level,
+        log_text=log_text,
+        today=today,
     )
 
     response = await client.chat.completions.create(
@@ -27,5 +41,5 @@ async def generate_first_week_plan(user_id: str, logs: list[dict]) -> str:
         frequency_penalty=0.2,
         presence_penalty=0.0,
     )
-    print(response)
+
     return response.choices[0].message.content.strip()

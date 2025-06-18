@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional
 from datetime import date
 
@@ -13,7 +13,7 @@ class UserCreate(BaseModel):
 
     race_date: Optional[date] = None
     race_type: Optional[str] = None
-    race_level: Optional[str]
+    race_level: Optional[str] = None
     pr_5k: Optional[float] = None
     pr_10k: Optional[float] = None
     pr_half: Optional[float] = None
@@ -28,5 +28,4 @@ class UserOut(BaseModel):
     weight: Optional[float]
     sex: Optional[str]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

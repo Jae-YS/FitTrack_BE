@@ -1,13 +1,14 @@
 import os
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
-from backend.api.routes import users, logs
+from backend.api.routes import users, logs, suggestions
 from starlette.middleware.sessions import SessionMiddleware
 
 
 app = FastAPI()
 app.include_router(users.router, prefix="/api")
 app.include_router(logs.router, prefix="/api")
+app.include_router(suggestions.router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

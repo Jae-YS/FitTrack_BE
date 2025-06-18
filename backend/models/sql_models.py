@@ -109,3 +109,20 @@ class Suggestion(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="suggestions")
+
+
+class SuggestedWorkout(Base):
+    __tablename__ = "suggested_workouts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    week = Column(Integer, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    recommended_date = Column(Date)
+    workout_type = Column(String, nullable=False)
+    description = Column(String)
+    duration_minutes = Column(Integer)
+    distance_km = Column(Float, nullable=True)
+    focus = Column(String, nullable=True)
+    pace = Column(String, nullable=True)
+    goal = Column(String, nullable=True)
+    intensity = Column(String, nullable=True)

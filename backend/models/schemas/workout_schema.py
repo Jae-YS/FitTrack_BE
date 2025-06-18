@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, ConfigDict
+from typing import Optional
 from datetime import date
 
 
@@ -14,7 +14,7 @@ class WorkoutBase(BaseModel):
 
 class WorkoutCreate(WorkoutBase):
     user_id: int
-    log_date: Optional[date] = None  # allow passing in a specific date
+    log_date: Optional[date] = None
 
 
 class WorkoutOut(WorkoutBase):
@@ -23,5 +23,4 @@ class WorkoutOut(WorkoutBase):
     log_date: date
     calories_burned: Optional[float]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

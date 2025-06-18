@@ -1,7 +1,8 @@
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from sqlalchemy.orm import Session
-from backend.models.sql_models import DailyLog, Workout
+from sqlalchemy import func
+from backend.models.sql_models import DailyLog, SuggestedWorkout, Workout, DailyLog
 
 
 def get_logs_and_workouts_between(
@@ -110,3 +111,46 @@ def build_user_history(user_id: int, db: Session):
     ]
 
     return {"summary": summary_data, "entries": workout_entries}
+
+
+def get_previous_sunday(today: date) -> date:
+    return today - timedelta(days=today.weekday() + 1 if today.weekday() != 6 else 0)
+
+
+def get_weekly_progress_data(user_id: int, db: Session) -> dict:
+    today = datetime.now().date()
+    start_of_week = get_previous_sunday(today)
+
+    # Get one representative suggested workout's distance (they're all the same)
+    suggested_workout = (
+        db.query(SuggestedWorkout.distance_km)
+        .filter(SuggestedWorkout.user_id == user_id)
+        .filter(SuggestedWorkout.recommended_date >= start_of_week)
+        .filter(SuggestedWorkout.recommended_date <= today)
+        .first()
+    )
+    distance_km_suggested = suggested_workout[0] if suggested_workout else 0.0
+
+    # Sum sleep hours
+    sleep_hours = (
+        db.query(func.coalesce(func.sum(DailyLog.sleep_hours), 0.0))
+        .filter(DailyLog.user_id == user_id)
+        .filter(DailyLog.date >= start_of_week)
+        .filter(DailyLog.date <= today)
+        .scalar()
+    )
+
+    # Sum workout distances
+    distance_km_workouts = (
+        db.query(func.coalesce(func.sum(Workout.distance_km), 0.0))
+        .filter(Workout.user_id == user_id)
+        .filter(Workout.log_date >= start_of_week)
+        .filter(Workout.log_date <= today)
+        .scalar()
+    )
+
+    return {
+        "distance_km_suggested": round(distance_km_suggested, 2),
+        "distance_km_workouts": round(distance_km_workouts, 2),
+        "sleep_hours": round(sleep_hours, 2),
+    }

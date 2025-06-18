@@ -25,5 +25,13 @@ Weekly Plan:
 - Tuesday: [description]
 ...
 
-Goal: [primary focus and weekly distance goal in kilometers]
+Intensity: [overall intensity level for the week, e.g., low, moderate, high]
+Distance: [total distance in kilometers for the week]
+Goal: [primary focus of the week, be specific e.g., endurance, speed, recovery]
+"""
+
+
+def recurring_training_plan_prompt():
+    return """
+
 """
