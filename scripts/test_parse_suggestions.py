@@ -1,5 +1,5 @@
 from datetime import datetime
-from backend.services.llm.parseSuggestions import parse_suggestions
+from backend.services.llm.format.parse_suggestions import parse_suggestions
 
 sample_plan = """
 Focus: This week emphasizes building endurance with a mix of easy runs and a long run. Incorporating cross-training will aid recovery.
