@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+import traceback
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from backend.models.schemas import SuggestedWorkoutOut
@@ -20,11 +22,18 @@ def get_suggested_workouts(user_id: int, db: Session = Depends(get_db)):
     return workouts
 
 
-@router.get(
-    "/next-suggested-workout/{user_id}", response_model=list[SuggestedWorkoutOut]
-)
+@router.post("/next-suggested-workout/{user_id}")
 async def get_next_suggested_workout(user_id: int, db: Session = Depends(get_db)):
-    workouts = await get_next_workout(user_id, db)
-    if not workouts:
-        return []
-    return workouts
+    try:
+        print(f"Fetching next workout for user_id: {user_id}")
+        workout = await get_next_workout(user_id, db)
+        if not workout:
+            return JSONResponse(
+                status_code=200, content={"message": "Not Sunday", "generated": False}
+            )
+        return workout
+    except Exception:
+        import traceback
+
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Workout generation failed")

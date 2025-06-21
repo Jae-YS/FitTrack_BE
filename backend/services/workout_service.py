@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
+from datetime import date
 
-from fastapi import HTTPException
+
 from backend.models.sql_models import SuggestedWorkout, Workout
 from sqlalchemy.orm import Session
 
@@ -19,11 +19,9 @@ def get_workouts(user_id: int, db: Session):
 
 
 async def get_next_workout(user_id: int, db: Session):
-    today = datetime.now(timezone.utc).date()
+    today = date.today()
     if today.weekday() != 6:
-        raise HTTPException(
-            status_code=403, detail="This operation is only allowed on Sundays."
-        )
+        return None
 
     recent_workouts = (
         db.query(Workout)
@@ -32,6 +30,18 @@ async def get_next_workout(user_id: int, db: Session):
         .all()
     )
     user = db.query(Workout).filter(Workout.user_id == user_id).all()
+
+    existing = (
+        db.query(SuggestedWorkout)
+        .filter(
+            SuggestedWorkout.user_id == user_id,
+            SuggestedWorkout.recommended_date == today,
+        )
+        .first()
+    )
+
+    if existing:
+        return None
 
     suggested_workout_past = (
         db.query(SuggestedWorkout)
@@ -47,8 +57,6 @@ async def get_next_workout(user_id: int, db: Session):
         week_number=suggested_workout_past.week + 1,
         recent_workouts=recent_workouts,
     )
-
-    print(plan_text)
 
     suggestions = parse_suggestions(
         plan_text,
