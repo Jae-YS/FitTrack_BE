@@ -122,6 +122,7 @@ class SuggestedWorkout(Base):
     description = Column(String)
     duration_minutes = Column(Integer)
     distance_km = Column(Float, nullable=True)
+    distance_per_workout = Column(Float, nullable=True)
     focus = Column(String, nullable=True)
     pace = Column(String, nullable=True)
     goal = Column(String, nullable=True)

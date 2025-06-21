@@ -33,7 +33,6 @@ async def create_user(db: Session, user_data: UserCreate) -> User:
         race_type=new_user.race_type,
         race_day=str(new_user.race_date),
         level=new_user.race_level,
-        today=date.today().isoformat(),
         today_str=today_date.isoformat(),
         today_day=today_date.strftime("%A"),
         pr_5k=new_user.pr_5k,

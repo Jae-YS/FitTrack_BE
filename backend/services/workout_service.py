@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from backend.models.sql_models import SuggestedWorkout, Workout

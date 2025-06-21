@@ -12,6 +12,7 @@ class SuggestedWorkoutOut(BaseModel):
     description: str
     duration_minutes: Optional[int]
     distance_km: Optional[float]
+    distance_per_workout: Optional[float]
     pace: Optional[str]
     goal: Optional[str]
     focus: Optional[str]

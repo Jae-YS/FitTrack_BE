@@ -20,7 +20,7 @@ router = APIRouter()
 
 
 # Check if today's daily log already exists for the user
-@router.get("/log/exists/{user_id}")
+@router.get("/exists/{user_id}")
 def check_daily_log_exists(user_id: int, db: Session = Depends(get_db)):
     today = date.today()
     exists = (
@@ -30,7 +30,7 @@ def check_daily_log_exists(user_id: int, db: Session = Depends(get_db)):
 
 
 # Log a daily entry and trigger LLM background summary generation
-@router.post("/log")
+@router.post("/")
 async def log_day(
     entry: DailyLogCreate,
     background_tasks: BackgroundTasks,

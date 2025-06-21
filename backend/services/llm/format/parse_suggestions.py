@@ -17,7 +17,7 @@ def parse_suggestions(
     focus = ""
     goal = ""
     intensity = ""
-    distance = ""
+    distance = None
 
     for line in lines:
         line_lower = line.lower().strip()
@@ -36,7 +36,7 @@ def parse_suggestions(
     print(f"  ↳ Focus: {focus}")
     print(f"  ↳ Goal: {goal}")
     print(f"  ↳ Intensity: {intensity}")
-    print(f"  ↳ Distance: {distance}")
+    print(f"  ↳ Weekly Distance: {distance}")
     print("-" * 40)
 
     for line in lines:
@@ -59,6 +59,12 @@ def parse_suggestions(
 
         recommended_date = base_date + timedelta(days=(day_idx - today_idx))
         workout_type = desc.split(",")[0].strip().lower()
+
+        # Extract distance per workout (e.g., "12 km", "6.5km")
+        dist_match = re.search(r"(\d+(?:\.\d+)?)\s*km", desc.lower())
+        distance_per_workout = float(dist_match.group(1)) if dist_match else None
+
+        # Extract pace (e.g., "5:00/km" or "6:00-6:30/km")
         pace_match = re.search(
             r"(\d{1,2}:\d{2}(?:-\d{1,2}:\d{2})?)\s*/?\s*km", desc.lower()
         )
@@ -70,7 +76,8 @@ def parse_suggestions(
             workout_type=workout_type,
             description=desc,
             duration_minutes=None,
-            distance_km=distance,
+            distance_km=distance,  # total weekly distance
+            distance_per_workout=distance_per_workout,  # extracted per workout
             pace=pace_match.group(1) if pace_match else None,
             goal=goal,
             focus=focus,
