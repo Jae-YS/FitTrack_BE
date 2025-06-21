@@ -17,24 +17,37 @@ def login(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    user = authenticate_user(data.email, data.password, db)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    print(f"Login attempt: {data.email}")
+    try:
+        user = authenticate_user(data.email, data.password, db)
+        if not user:
+            print("Invalid credentials")
+            raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    request.session["user_id"] = user.id
-
-    return {"user": user, "is_new": False}
+        request.session["user_id"] = user.id
+        print(f"Login success: {user.email}")
+        return {"user": user, "is_new": False}
+    except Exception as e:
+        print(f"Login route crashed: {e}")
+        raise
 
 
 # Register new user
 @router.post("/register", response_model=UserOut)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter_by(email=user.email).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="User already exists")
+    print(f"Register attempt: {user.email}")
+    try:
+        existing_user = db.query(User).filter_by(email=user.email).first()
+        if existing_user:
+            print("User already exists")
+            raise HTTPException(status_code=400, detail="User already exists")
 
-    new_user = await create_user(db, user)
-    return new_user
+        new_user = await create_user(db, user)
+        print(f"User created: {new_user.email}")
+        return new_user
+    except Exception as e:
+        print(f"Register route crashed: {e}")
+        raise
 
 
 # Get current user information
