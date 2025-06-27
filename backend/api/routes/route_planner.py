@@ -1,10 +1,12 @@
-from fastapi import Depends, HTTPException, APIRouter
+from fastapi import Depends, HTTPException, APIRouter, Query
 from sqlalchemy.orm import Session
 from datetime import date
 from backend.db.session import get_db
 from backend.models.schemas.route_schema import RouteRequest
 from backend.models.sql_models import SuggestedWorkout
 from backend.services.route_service import generate_route_geojson
+import httpx
+
 
 router = APIRouter()
 
@@ -37,3 +39,28 @@ def generate_route(request: RouteRequest, db: Session = Depends(get_db)):
         "user_id": request.user_id,
         "routes": routes,
     }
+
+
+@router.get("/geocode")
+async def geocode_address(q: str = Query(..., description="Address to geocode")):
+    url = "https://nominatim.openstreetmap.org/search"
+    headers = {
+        "User-Agent": "fittrack-ai-backend (youremail@example.com)"  # Nominatim requires this
+    }
+    params = {"format": "json", "q": q}
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, params=params, headers=headers)
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=500, detail="Failed to fetch from Nominatim"
+            )
+
+        results = response.json()
+        if not results:
+            raise HTTPException(status_code=404, detail="Location not found")
+
+        return {
+            "lat": float(results[0]["lat"]),
+            "lon": float(results[0]["lon"]),
+        }

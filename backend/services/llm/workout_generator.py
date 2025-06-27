@@ -31,6 +31,8 @@ async def generate_first_week_plan(
 
     print(log_text)
 
+    print(today_day, today_str)
+
     prompt = runner_training_plan_prompt(
         race_type=race_type,
         race_day=race_day,
@@ -39,6 +41,8 @@ async def generate_first_week_plan(
         today_str=today_str,
         today_day=today_day,
     )
+
+    print(prompt)
 
     response = await client.chat.completions.create(
         model="gpt-4o-mini",

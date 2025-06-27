@@ -29,6 +29,8 @@ async def create_user(db: Session, user_data: UserCreate) -> User:
     db.refresh(new_user)
     today_date = date.today()
 
+    print("generating first week plan for new user")
+
     plan_text = await generate_first_week_plan(
         race_type=new_user.race_type,
         race_day=str(new_user.race_date),
@@ -41,12 +43,14 @@ async def create_user(db: Session, user_data: UserCreate) -> User:
         pr_full=new_user.pr_full,
     )
 
+    print(f"Generated plan for new user: {plan_text}")
+
     today = datetime.now(timezone.utc).date()
 
     suggestions = parse_suggestions(
         plan_text,
         user_id=new_user.id,
-        week=1,  # First workout week once you create a user
+        week=1,
         base_date=today,
     )
 

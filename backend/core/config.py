@@ -1,9 +1,11 @@
+from typing import ClassVar
 from pydantic_settings import BaseSettings
 from pathlib import Path
 
 
 class Settings(BaseSettings):
     DATABASE_URL: str
+    pool_pre_ping: ClassVar[bool] = True
     SECRET_KEY: str
     OPENAI_API_KEY: str
     ALLOWED_ORIGINS: list[str] = ["http://localhost:5173"]

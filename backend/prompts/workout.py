@@ -13,7 +13,7 @@ Below are any personal records the user ran. If no records are present, assume t
 {records}
 
 Your task:
-1. Create a personalized training plan that only covers the days from {today_str} (a {today_day}) through Saturday.
+1. Create a personalized training plan that only covers the days from {today_str} (a {today_day}) to Saturday.
 2. Recommend a mix of runs (easy, tempo, long), rest days, and cross-training (e.g., cycling, yoga).
 3. Include specific instructions for each workout: distance, duration, intensity/pace, and purpose.
 4. Give a brief overview of what the focus of the week should be (e.g., building endurance, speed work, recovery) followed by a summary of the plan.
