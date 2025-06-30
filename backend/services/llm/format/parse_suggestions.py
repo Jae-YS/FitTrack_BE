@@ -1,19 +1,13 @@
-from datetime import timedelta, date
+from datetime import date, timedelta
 import re
-from typing import List
-from backend.models.sql_models import SuggestedWorkout
+from typing import List, Tuple
+from backend.db.models import PlannedWorkout
+
 
 DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
 
-def parse_suggestions(
-    plan_text: str, user_id: int, week: int, base_date: date
-) -> List[SuggestedWorkout]:
-    print(f"[DEBUG] Parsing suggestions for user_id={user_id}, week={week}")
-    suggestions = []
-    lines = plan_text.strip().splitlines()
-    today_idx = base_date.weekday()
-
+def extract_plan_metadata(lines: List[str]) -> Tuple[str, str, str, float]:
     focus = ""
     goal = ""
     intensity = ""
@@ -32,12 +26,17 @@ def parse_suggestions(
             match = re.search(r"\d+(?:\.\d+)?", distance_str)
             distance = float(match.group()) if match else None
 
-    print("[DEBUG] Parsed Plan Metadata:")
-    print(f"  ↳ Focus: {focus}")
-    print(f"  ↳ Goal: {goal}")
-    print(f"  ↳ Intensity: {intensity}")
-    print(f"  ↳ Weekly Distance: {distance}")
-    print("-" * 40)
+    return focus, goal, intensity, distance
+
+
+def parse_suggestions(
+    plan_text: str, training_plan_id: int, base_date: date
+) -> List[PlannedWorkout]:
+    suggestions = []
+    lines = plan_text.strip().splitlines()
+    today_idx = base_date.weekday()
+
+    focus, goal, intensity, _ = extract_plan_metadata(lines)
 
     for line in lines:
         if not line.strip() or ":" not in line or not line.startswith("- "):
@@ -60,28 +59,21 @@ def parse_suggestions(
         recommended_date = base_date + timedelta(days=(day_idx - today_idx))
         workout_type = desc.split(",")[0].strip().lower()
 
-        # Extract distance per workout (e.g., "12 km", "6.5km")
         dist_match = re.search(r"(\d+(?:\.\d+)?)\s*km", desc.lower())
         distance_per_workout = float(dist_match.group(1)) if dist_match else None
 
-        # Extract pace (e.g., "5:00/km" or "6:00-6:30/km")
         pace_match = re.search(
             r"(\d{1,2}:\d{2}(?:-\d{1,2}:\d{2})?)\s*/?\s*km", desc.lower()
         )
 
-        suggested = SuggestedWorkout(
-            user_id=user_id,
-            week=week,
+        suggested = PlannedWorkout(
+            training_plan_id=training_plan_id,
             recommended_date=recommended_date,
             workout_type=workout_type,
             description=desc,
             duration_minutes=None,
-            distance_km=distance,  # total weekly distance
-            distance_per_workout=distance_per_workout,  # extracted per workout
+            distance_km=distance_per_workout,
             pace=pace_match.group(1) if pace_match else None,
-            goal=goal,
-            focus=focus,
-            intensity=intensity,
         )
 
         suggestions.append(suggested)

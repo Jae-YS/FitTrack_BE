@@ -1,156 +1,162 @@
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from backend.models.sql_models import DailyLog, SuggestedWorkout, Workout, DailyLog
+from backend.db.models import CompletedWorkout, DailyEntry, TrainingPlan
 
 
-def get_logs_and_workouts_between(
+def _get_previous_sunday(today: date) -> date:
+    return today - timedelta(days=today.weekday() + 1 if today.weekday() != 6 else 0)
+
+
+def _get_entries_and_workouts(
     user_id: int, start_date: date, end_date: date, db: Session
 ):
-    logs = (
-        db.query(DailyLog)
+    entries = (
+        db.query(DailyEntry)
         .filter(
-            DailyLog.user_id == user_id, DailyLog.date.between(start_date, end_date)
+            DailyEntry.user_id == user_id,
+            DailyEntry.date.between(start_date, end_date),
         )
         .all()
     )
+
     workouts = (
-        db.query(Workout)
+        db.query(CompletedWorkout)
         .filter(
-            Workout.user_id == user_id, Workout.log_date.between(start_date, end_date)
+            CompletedWorkout.user_id == user_id,
+            CompletedWorkout.log_date.between(start_date, end_date),
         )
         .all()
     )
-    return logs, workouts
+
+    return entries, workouts
 
 
-def build_weekly_dashboard_data(user_id: int, db: Session):
+# Build the workout history for a user
+def build_workout_history(user_id: int, db: Session):
     today = date.today()
-    last_sunday = today - timedelta(
-        days=today.weekday() + 1 if today.weekday() < 6 else 0
-    )
-    week_end = last_sunday + timedelta(days=6)
-
-    logs, workouts = get_logs_and_workouts_between(user_id, last_sunday, week_end, db)
+    start_date = today - timedelta(days=55)
+    entries, workouts = _get_entries_and_workouts(user_id, start_date, today, db)
 
     workouts_by_date = defaultdict(list)
-    for w in workouts:
-        workouts_by_date[w.log_date].append(w)
+    for workout in workouts:
+        workouts_by_date[workout.log_date].append(workout)
+
+    summary_data = [
+        {
+            "date": entry.date.isoformat(),
+            "sleep_hours": entry.sleep_hours,
+            "total_workout_minutes": sum(
+                w.duration_minutes
+                for w in workouts_by_date.get(entry.date, [])
+                if w.duration_minutes
+            ),
+        }
+        for entry in entries
+    ]
+
+    workout_entries = [
+        {
+            "date": workout.log_date.isoformat(),
+            "type": workout.type,
+            "duration": workout.duration_minutes,
+            "description": workout.description,
+            "summary": "Generated summary placeholder",
+        }
+        for workout in workouts
+    ]
+
+    return {
+        "summary": summary_data,
+        "entries": workout_entries,
+    }
+
+
+# Build the weekly dashboard data for a user
+def build_weekly_dashboard_data(user_id: int, db: Session):
+    today = date.today()
+    last_sunday = _get_previous_sunday(today)
+    week_end = last_sunday + timedelta(days=6)
+
+    _, workouts = _get_entries_and_workouts(user_id, last_sunday, week_end, db)
+
+    workouts_by_date = defaultdict(list)
+    for workout in workouts:
+        workouts_by_date[workout.log_date].append(workout)
 
     day_data = []
     for i in range(7):
         current_date = last_sunday + timedelta(days=i)
-        w_today = workouts_by_date.get(current_date, [])
-        total_cals = sum(w.calories_burned or 0 for w in w_today)
+        workouts_today = workouts_by_date.get(current_date, [])
 
         day_data.append(
             {
                 "day": current_date.strftime("%A"),
                 "date": current_date.strftime("%m/%d"),
-                "completed": bool(w_today),
-                "expectedCalories": round(total_cals),
+                "completed": bool(workouts_today),
                 "workouts": [
                     {
-                        "type": w.type,
-                        "durationMinutes": w.duration_minutes,
-                        "calories_burned": w.calories_burned,
+                        "type": workout.type,
+                        "durationMinutes": workout.duration_minutes,
+                        "distancekm": workout.distance_km,
                     }
-                    for w in w_today
+                    for workout in workouts_today
                 ],
             }
         )
 
     workout_data = [
         {
-            "date": w.log_date.isoformat(),
-            "type": w.type,
-            "duration": w.duration_minutes,
-            "calories": w.calories_burned,
-            "description": w.description,
+            "date": workout.log_date.isoformat(),
+            "type": workout.type,
+            "duration": workout.duration_minutes,
+            "description": workout.description,
             "summary": "Generated summary here",
         }
-        for w in workouts
+        for workout in workouts
     ]
 
-    return {"days": day_data, "entries": workout_data}
+    return {
+        "days": day_data,
+        "entries": workout_data,
+    }
 
 
-def build_user_history(user_id: int, db: Session):
-    today = date.today()
-    start_date = today - timedelta(days=41)  # inclusive
-    logs, workouts = get_logs_and_workouts_between(user_id, start_date, today, db)
-
-    workouts_by_date = defaultdict(list)
-    for w in workouts:
-        workouts_by_date[w.log_date].append(w)
-
-    summary_data = []
-    for log in logs:
-        total_minutes = sum(
-            w.duration_minutes for w in workouts_by_date.get(log.date, [])
-        )
-        summary_data.append(
-            {
-                "date": log.date.isoformat(),
-                "sleep_hours": log.sleep_hours,
-                "total_workout_minutes": total_minutes,
-            }
-        )
-
-    workout_entries = [
-        {
-            "date": w.log_date.isoformat(),
-            "type": w.type,
-            "duration": w.duration_minutes,
-            "calories": w.calories_burned or 0,
-            "description": w.description,
-            "summary": "Generated summary placeholder",
-        }
-        for w in workouts
-    ]
-
-    return {"summary": summary_data, "entries": workout_entries}
-
-
-def get_previous_sunday(today: date) -> date:
-    return today - timedelta(days=today.weekday() + 1 if today.weekday() != 6 else 0)
-
-
+#
 def get_weekly_progress_data(user_id: int, db: Session) -> dict:
-    today = datetime.now().date()
-    start_of_week = get_previous_sunday(today)
+    today = date.today()
+    start_of_week = _get_previous_sunday(today)
 
-    # Get one representative suggested workout's distance (they're all the same)
-    suggested_workout = (
-        db.query(SuggestedWorkout.distance_km)
-        .filter(SuggestedWorkout.user_id == user_id)
-        .filter(SuggestedWorkout.recommended_date >= start_of_week)
-        .filter(SuggestedWorkout.recommended_date <= today)
-        .first()
+    training_plan_distance = (
+        db.query(TrainingPlan.total_distance_km)
+        .filter(TrainingPlan.user_id == user_id)
+        .scalar()
+        or 0.0
     )
-    distance_km_suggested = suggested_workout[0] if suggested_workout else 0.0
 
-    # Sum sleep hours
-    sleep_hours = (
-        db.query(func.coalesce(func.sum(DailyLog.sleep_hours), 0.0))
-        .filter(DailyLog.user_id == user_id)
-        .filter(DailyLog.date >= start_of_week)
-        .filter(DailyLog.date <= today)
+    hours_slept = (
+        db.query(func.coalesce(func.sum(DailyEntry.sleep_hours), 0.0))
+        .filter(
+            DailyEntry.user_id == user_id,
+            DailyEntry.date >= start_of_week,
+            DailyEntry.date <= today,
+        )
         .scalar()
     )
 
-    # Sum workout distances
     distance_km_workouts = (
-        db.query(func.coalesce(func.sum(Workout.distance_km), 0.0))
-        .filter(Workout.user_id == user_id)
-        .filter(Workout.log_date >= start_of_week)
-        .filter(Workout.log_date <= today)
+        db.query(func.coalesce(func.sum(CompletedWorkout.distance_km), 0.0))
+        .filter(
+            CompletedWorkout.user_id == user_id,
+            CompletedWorkout.log_date >= start_of_week,
+            CompletedWorkout.log_date <= today,
+        )
         .scalar()
     )
 
     return {
-        "distance_km_suggested": round(distance_km_suggested, 2),
+        "distance_km_suggested": round(training_plan_distance, 2),
         "distance_km_workouts": round(distance_km_workouts, 2),
-        "sleep_hours": round(sleep_hours, 2),
+        "sleep_hours": round(hours_slept, 2),
     }

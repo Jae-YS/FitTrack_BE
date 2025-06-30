@@ -1,13 +1,13 @@
 import requests
 import random
 import math
-from backend.core.config import settings  # adjust path to where settings.py is
+from backend.core.config import settings
 from typing import List
 
 ORS_BASE_URL = "https://api.openrouteservice.org/v2/directions/foot-walking/geojson"
 
 
-def offset_point(
+def _offset_point(
     lat: float, lon: float, distance_km: float, angle_deg: float
 ) -> List[float]:
     """Generate a point offset from the origin by a distance and angle (approximate)."""
@@ -16,6 +16,7 @@ def offset_point(
     return [lon + dx / 111, lat + dy / 111]
 
 
+# Generate a route GeoJSON with a random mid-point offset from the start point
 def generate_route_geojson(
     start_lat: float, start_lon: float, target_distance_km: float, count: int = 3
 ) -> List[dict]:
@@ -24,7 +25,7 @@ def generate_route_geojson(
 
     for _ in range(count):
         angle = random.randint(0, 360)
-        mid_point = offset_point(start_lat, start_lon, target_distance_km / 2.5, angle)
+        mid_point = _offset_point(start_lat, start_lon, target_distance_km / 2.5, angle)
         coordinates = [[start_lon, start_lat], mid_point, [start_lon, start_lat]]
 
         res = requests.post(

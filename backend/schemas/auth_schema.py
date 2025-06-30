@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from backend.models.schemas.user_schema import UserOut
+from backend.schemas.user_schema import UserResponse
 
 
 class LoginRequest(BaseModel):
@@ -9,5 +9,5 @@ class LoginRequest(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    user: Optional[UserOut]
+    user: Optional[UserResponse]
     is_new: bool

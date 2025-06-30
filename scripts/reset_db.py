@@ -1,9 +1,8 @@
 from datetime import date, timedelta
 from sqlalchemy.orm import Session
 from backend.db.session import SessionLocal
-from backend.models.sql_models import User, DailyLog, Workout
+from backend.db.models import User, DailyEntry, CompletedWorkout, RacePlan, PersonalBest
 from backend.core.security import hash_password
-from backend.services.calories import calculate_calories
 
 # Predefined workout plan: (type, description, duration (min), distance (km), effort level)
 WORKOUT_PLAN = [
@@ -22,31 +21,40 @@ def seed_mock_user_and_logs(db: Session):
         email="mockuser@example.com",
         hashed_password=hash_password("password123"),
         name="Mock User",
-        height=185,  # cm
-        weight=72.6,  # kg
+        height_cm=185,
         sex="male",
-        race_type="half_marathon",
-        race_level="intermediate",
-        race_date=date.today() + timedelta(days=45),
-        pr_5k=25.5,
-        pr_10k=55.0,
-        pr_half=None,
-        pr_full=None,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # Seed personal bests
+    prs = [
+        PersonalBest(user_id=user.id, distance_type="5k", time_minutes=25.5),
+        PersonalBest(user_id=user.id, distance_type="10k", time_minutes=55.0),
+    ]
+    db.add_all(prs)
+
+    # Seed race plan
+    race = RacePlan(
+        user_id=user.id,
+        race_type="half_marathon",
+        race_date=date.today() + timedelta(days=45),
+        target_level="intermediate",
+        notes="Mock plan",
+    )
+    db.add(race)
 
     today = date.today()
 
     for i in range(14):  # Generate logs for past 14 days
         log_date = today - timedelta(days=i)
 
-        log = DailyLog(
+        log = DailyEntry(
             user_id=user.id,
             date=log_date,
-            mood=str(5 + (i % 5)),  # mood: 5–9
-            sleep_hours=6.0 + (i % 3),  # sleep: 6–8 hrs
+            mood=str(5 + (i % 5)),
+            sleep_hours=6.0 + (i % 3),
         )
         db.add(log)
 
@@ -55,16 +63,15 @@ def seed_mock_user_and_logs(db: Session):
         ]
 
         if workout_type != "rest":
-            calories = calculate_calories(workout_type, duration, user.weight)
-            workout = Workout(
+            workout = CompletedWorkout(
                 user_id=user.id,
-                log_date=log_date,
-                type=workout_type,
+                date=log_date,
+                workout_type=workout_type,
                 description=desc,
                 duration_minutes=duration,
                 distance_km=distance,
                 effort_level=effort,
-                calories_burned=round(calories, 2),
+                planned_workout_id=None,
             )
             db.add(workout)
 
@@ -75,9 +82,10 @@ def seed_mock_user_and_logs(db: Session):
 def reset_db():
     db: Session = SessionLocal()
     try:
-        # WARNING: This assumes Alembic has already created your schema!
-        db.query(Workout).delete()
-        db.query(DailyLog).delete()
+        db.query(CompletedWorkout).delete()
+        db.query(DailyEntry).delete()
+        db.query(RacePlan).delete()
+        db.query(PersonalBest).delete()
         db.query(User).delete()
         db.commit()
 

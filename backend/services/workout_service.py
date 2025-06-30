@@ -1,13 +1,17 @@
 from datetime import date, timedelta
 
+from fastapi import HTTPException
 
-from backend.models.sql_models import SuggestedWorkout, Workout
+
+from backend.db.models import CompletedWorkout, PlannedWorkout, TrainingPlan, RacePlan
+from backend.schemas.completed_workout_schema import CompletedWorkoutCreate
 from sqlalchemy.orm import Session
 
 from backend.services.llm.format.parse_suggestions import parse_suggestions
 from backend.services.llm.workout_generator import generate_next_week_plan
 
 
+# Generate a weekly training plan for a user based on their
 def get_workouts(user_id: int, db: Session):
     today = date.today()
     days_since_sunday = (today.weekday() + 1) % 7
@@ -16,74 +20,99 @@ def get_workouts(user_id: int, db: Session):
     print(f"Fetching workouts for user {user_id} since past Sunday: {past_sunday}")
 
     return (
-        db.query(SuggestedWorkout)
+        db.query(PlannedWorkout)
         .filter(
-            SuggestedWorkout.user_id == user_id,
-            SuggestedWorkout.recommended_date >= past_sunday,
+            PlannedWorkout.user_id == user_id,
+            PlannedWorkout.recommended_date >= past_sunday,
         )
-        .order_by(SuggestedWorkout.recommended_date.asc())
+        .order_by(PlannedWorkout.recommended_date.asc())
         .limit(7)
         .all()
     )
 
 
-async def get_next_workout(user_id: int, db: Session):
+# Generate the next training plan for a user
+async def generate_next_training_plan(user_id: int, db: Session):
     today = date.today()
-    if today.weekday() != 6:
+    if today.weekday() != 6:  # Only run on Sunday
         return None
 
-    recent_workouts = (
-        db.query(Workout)
-        .filter(Workout.user_id == user_id)
-        .order_by(Workout.log_date.desc())
-        .all()
-    )
-    user = db.query(Workout).filter(Workout.user_id == user_id).all()
-
-    existing = (
-        db.query(SuggestedWorkout)
-        .filter(
-            SuggestedWorkout.user_id == user_id,
-            SuggestedWorkout.recommended_date == today,
-        )
-        .first()
-    )
-
-    print(f"Checking for existing workout for user {user_id} on {today}: {existing}")
-
-    if existing:
+    if _training_plan_exists_for_today(user_id, today, db):
         return None
 
-    print(existing.week)
-
-    suggested_workout_past = (
-        db.query(SuggestedWorkout)
-        .filter(SuggestedWorkout.user_id == user_id)
-        .order_by(SuggestedWorkout.recommended_date.desc())
-        .first()
-    )
+    recent_workouts = _get_recent_workouts(user_id, db)
+    last_week = _get_last_training_plan_week(user_id, today, db)
+    race_plan = _get_upcoming_race_plan(user_id, today, db)
 
     plan_text = await generate_next_week_plan(
-        race_type=user.race_type,
-        race_day=user.race_day,
-        level=user.level,
-        week_number=suggested_workout_past.week + 1,
+        race_type=race_plan.race_type,
+        race_day=race_plan.race_date,
+        level=race_plan.target_level,
+        week_number=last_week + 1,
         recent_workouts=recent_workouts,
     )
 
-    print(f"Generated plan for week {suggested_workout_past.week + 1}: {plan_text}")
-
-    suggestions = parse_suggestions(
+    new_training_plan = parse_suggestions(
         plan_text,
-        user_id=user.id,
-        week=suggested_workout_past.week + 1,
+        user_id=user_id,
+        week=last_week + 1,
         base_date=today,
     )
 
-    print("added suggestions:")
-
-    for suggestion in suggestions:
-        db.add(suggestion)
+    for planned_workout in new_training_plan:
+        db.add(planned_workout)
 
     db.commit()
-    return user
+    return new_training_plan
+
+
+def _training_plan_exists_for_today(user_id: int, today: date, db: Session) -> bool:
+    existing = (
+        db.query(TrainingPlan)
+        .filter(
+            TrainingPlan.user_id == user_id,
+            TrainingPlan.recommended_date == today,
+        )
+        .first()
+    )
+    return existing is not None
+
+
+def _get_recent_workouts(user_id: int, db: Session):
+    three_weeks_ago = date.today() - timedelta(weeks=3)
+    return (
+        db.query(CompletedWorkout)
+        .filter(
+            CompletedWorkout.user_id == user_id,
+            CompletedWorkout.date >= three_weeks_ago,
+        )
+        .order_by(CompletedWorkout.date.desc())
+        .all()
+    )
+
+
+def _get_last_training_plan_week(user_id: int, today: date, db: Session) -> int:
+    last_plan = (
+        db.query(TrainingPlan)
+        .filter(
+            TrainingPlan.user_id == user_id,
+            TrainingPlan.recommended_date < today,
+        )
+        .order_by(TrainingPlan.recommended_date.desc())
+        .first()
+    )
+    return last_plan.week if last_plan else 0
+
+
+def _get_upcoming_race_plan(user_id: int, today: date, db: Session):
+    race_plan = (
+        db.query(RacePlan)
+        .filter(RacePlan.user_id == user_id, RacePlan.race_date >= today)
+        .order_by(RacePlan.race_date.asc())
+        .first()
+    )
+
+    if not race_plan:
+        raise HTTPException(status_code=404, detail="No upcoming race plan found")
+
+    return race_plan

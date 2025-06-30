@@ -3,8 +3,9 @@ from typing import Optional
 from datetime import date
 
 
-class WorkoutBase(BaseModel):
-    type: str
+class CompletedWorkoutBase(BaseModel):
+    date: date
+    workout_type: str
     description: Optional[str]
     duration_minutes: Optional[int]
     distance_km: Optional[float]
@@ -12,15 +13,14 @@ class WorkoutBase(BaseModel):
     effort_level: Optional[str]
 
 
-class WorkoutCreate(WorkoutBase):
+class CompletedWorkoutCreate(CompletedWorkoutBase):
     user_id: int
-    log_date: Optional[date] = None
+    planned_workout_id: Optional[int]
 
 
-class WorkoutOut(WorkoutBase):
+class CompletedWorkoutResponse(CompletedWorkoutBase):
     id: int
     user_id: int
-    log_date: date
-    calories_burned: Optional[float]
+    planned_workout_id: Optional[int]
 
     model_config = ConfigDict(from_attributes=True)

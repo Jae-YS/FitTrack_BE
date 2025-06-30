@@ -1,59 +1,23 @@
-from backend.models.sql_models import User
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from backend.models.schemas.user_schema import UserCreate, UserOut
-from backend.models.schemas.auth_schema import LoginRequest, LoginResponse
-from backend.services.user_service import authenticate_user, get_user_by_id, create_user
+from backend.schemas.user_schema import UserCreate, UserResponse
+from backend.schemas.auth_schema import LoginRequest, LoginResponse
+from backend.services.user_service import (
+    authenticate_user,
+    get_user_by_id,
+    register_user,
+)
 from backend.db.session import get_db
 
 
-router = APIRouter()
-
-
-# Login user
-@router.post("/login", response_model=LoginResponse)
-def login(
-    data: LoginRequest,
-    request: Request,
-    db: Session = Depends(get_db),
-):
-    print(f"Login attempt: {data.email}")
-    try:
-        user = authenticate_user(data.email, data.password, db)
-        if not user:
-            print("Invalid credentials")
-            raise HTTPException(status_code=401, detail="Invalid credentials")
-
-        request.session["user_id"] = user.id
-        print(f"Login success: {user.email}")
-        return {"user": user, "is_new": False}
-    except Exception as e:
-        print(f"Login route crashed: {e}")
-        raise
-
-
-# Register new user
-@router.post("/register", response_model=UserOut)
-async def register(user: UserCreate, db: Session = Depends(get_db)):
-    print(f"Register attempt: {user.email}")
-    try:
-        existing_user = db.query(User).filter_by(email=user.email).first()
-        if existing_user:
-            print("User already exists")
-            raise HTTPException(status_code=400, detail="User already exists")
-
-        new_user = await create_user(db, user)
-        print(f"User created: {new_user.email}")
-        return new_user
-    except Exception as e:
-        print(f"Register route crashed: {e}")
-        raise
+router = APIRouter(prefix="/users", tags=["Users"])
 
 
 # Get current user information
-@router.get("/me")
+@router.get("/me", response_model=UserResponse)
 def get_current_user(request: Request, db: Session = Depends(get_db)):
     user_id = request.session.get("user_id")
+
     if not user_id:
         raise HTTPException(status_code=401, detail="Not logged in")
 
@@ -64,8 +28,41 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
     return user
 
 
+# Login user
+@router.post("/login", response_model=LoginResponse)
+def login_user(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
+    try:
+        user = authenticate_user(data.email, data.password, db)
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        request.session["user_id"] = user.id
+        return user
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Unexpected error during login: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# Register new user
+@router.post("/register", response_model=UserResponse)
+async def register(user: UserCreate, db: Session = Depends(get_db)):
+    try:
+        new_user = await register_user(db, user)
+        return new_user
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Register route crashed: {e}")
+        raise HTTPException(status_code=500, detail="Registration failed")
+
+
 # Logout user
 @router.post("/logout")
 def logout(request: Request):
+    if not request.session.get("user_id"):
+        raise HTTPException(status_code=401, detail="Not logged in")
     request.session.clear()
     return {"message": "Logged out"}

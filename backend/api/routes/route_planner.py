@@ -2,23 +2,24 @@ from fastapi import Depends, HTTPException, APIRouter, Query
 from sqlalchemy.orm import Session
 from datetime import date
 from backend.db.session import get_db
-from backend.models.schemas.route_schema import RouteRequest
-from backend.models.sql_models import SuggestedWorkout
+from backend.schemas.route_schema import RouteRequest
+from backend.db.models.planned_workout import PlannedWorkout
 from backend.services.route_service import generate_route_geojson
 import httpx
 
 
-router = APIRouter()
+router = APIRouter(prefix="/route-planner", tags=["Route Planner"])
 
 
+# Generate a route based on the user's location and today's workout distance
 @router.post("/generate-route")
 def generate_route(request: RouteRequest, db: Session = Depends(get_db)):
     # Get today's workout for the user
     today = date.today()
     workout = (
-        db.query(SuggestedWorkout)
-        .filter(SuggestedWorkout.user_id == request.user_id)
-        .filter(SuggestedWorkout.recommended_date == today)
+        db.query(PlannedWorkout)
+        .filter(PlannedWorkout.user_id == request.user_id)
+        .filter(PlannedWorkout.recommended_date == today)
         .first()
     )
 
@@ -41,12 +42,11 @@ def generate_route(request: RouteRequest, db: Session = Depends(get_db)):
     }
 
 
+#   # Geocode an address using Nominatim
 @router.get("/geocode")
 async def geocode_address(q: str = Query(..., description="Address to geocode")):
     url = "https://nominatim.openstreetmap.org/search"
-    headers = {
-        "User-Agent": "fittrack-ai-backend (youremail@example.com)"  # Nominatim requires this
-    }
+    headers = {"User-Agent": "fittrack-ai-backend (youremail@example.com)"}
     params = {"format": "json", "q": q}
 
     async with httpx.AsyncClient() as client:

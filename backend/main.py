@@ -1,15 +1,19 @@
 import os
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
-from backend.api.routes import users, logs, suggestions, route_planner
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
+from backend.api.routes import (
+    users,
+    daily_entries,
+    dashboard,
+    route_planner,
+    training_plans,
+    completed_workouts,
+)
 
 app = FastAPI()
-app.include_router(users.router, prefix="/api/users")
-app.include_router(logs.router, prefix="/api/logs")
-app.include_router(suggestions.router, prefix="/api/suggestions")
-app.include_router(route_planner.router, prefix="/api/routes")
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -26,3 +30,13 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SESSION_SECRET_KEY"),
 )
+
+
+API_PREFIX = "/api"
+
+app.include_router(users.router, prefix=API_PREFIX)
+app.include_router(daily_entries.router, prefix=API_PREFIX)
+app.include_router(route_planner.router, prefix=API_PREFIX)
+app.include_router(training_plans.router, prefix=API_PREFIX)
+app.include_router(completed_workouts.router, prefix=API_PREFIX)
+app.include_router(dashboard.router, prefix=API_PREFIX)
