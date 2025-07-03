@@ -11,6 +11,8 @@ class User(Base):
     name = Column(String, nullable=True)
     height_cm = Column(Float, nullable=True)
     sex = Column(String, nullable=False)
+    target_level = Column(String, nullable=True)
+
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

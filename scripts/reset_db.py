@@ -23,6 +23,7 @@ def seed_mock_user_and_logs(db: Session):
         name="Mock User",
         height_cm=185,
         sex="male",
+        target_level="intermediate",
     )
     db.add(user)
     db.commit()
@@ -40,7 +41,6 @@ def seed_mock_user_and_logs(db: Session):
         user_id=user.id,
         race_type="half_marathon",
         race_date=date.today() + timedelta(days=45),
-        target_level="intermediate",
         notes="Mock plan",
     )
     db.add(race)

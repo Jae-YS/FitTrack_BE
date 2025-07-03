@@ -32,13 +32,14 @@ async def register_user(db: Session, user_data: UserCreate) -> User:
     existing_user = db.query(User).filter_by(email=user_data.email).first()
     if existing_user:
         raise ValueError("User with this email already exists")
-
+    print(f"Creating user with email: {user_data.email}")
     return await create_user(db, user_data)
 
 
 # Create a new user in the database
 async def create_user(db: Session, user_data: UserCreate) -> User:
     user_dict = user_data.model_dump()
+    print(f"Creating user with data: {user_dict}")
 
     personal_bests_data = user_dict.pop("personal_bests", [])
     race_plans_data = user_dict.pop("race_plans", [])
@@ -87,7 +88,7 @@ async def _generate_initial_training_plan(db: Session, new_user: User):
     plan_text = await generate_first_week_plan(
         race_type=race_plan.race_type,
         race_day=str(race_plan.race_date),
-        level=race_plan.target_level,
+        level=new_user.target_level,
         today_str=today_date.isoformat(),
         today_day=today_date.strftime("%A"),
         pr_5k=pr_lookup.get("5k"),
@@ -120,3 +121,9 @@ async def _generate_initial_training_plan(db: Session, new_user: User):
         db.add(suggestion)
 
     return
+
+
+def get_race_date(user: User) -> date | None:
+
+    user.race_plans.sort(key=lambda rp: rp.race_date)
+    return user.race_plans[0].race_date if user.race_plans else None

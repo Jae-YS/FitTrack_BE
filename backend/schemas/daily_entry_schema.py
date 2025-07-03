@@ -38,5 +38,4 @@ class DailyEntryResponse(DailyEntryBase):
     user_id: int
     date: date
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

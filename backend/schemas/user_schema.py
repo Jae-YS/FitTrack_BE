@@ -8,6 +8,7 @@ class UserBase(BaseModel):
     email: EmailStr
     name: Optional[str]
     height_cm: Optional[float]
+    target_level: Optional[str]
     sex: str
 
 

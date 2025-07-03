@@ -6,7 +6,6 @@ from typing import Optional
 class RacePlanBase(BaseModel):
     race_type: str
     race_date: date
-    target_level: Optional[str]
     notes: Optional[str]
 
 

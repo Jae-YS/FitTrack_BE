@@ -10,7 +10,6 @@ class RacePlan(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     race_type = Column(String, nullable=False)
     race_date = Column(Date, nullable=False)
-    target_level = Column(String, nullable=True)
     notes = Column(String, nullable=True)
 
     user = relationship("User", back_populates="race_plans")
@@ -19,5 +18,5 @@ class RacePlan(Base):
         return (
             f"<RacePlan(id={self.id}, user_id={self.user_id}, "
             f"race_type={self.race_type}, race_date={self.race_date}, "
-            f"target_level={self.target_level}, notes={self.notes})>"
+            f"notes={self.notes})>"
         )

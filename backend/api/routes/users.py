@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
+from datetime import date
 from sqlalchemy.orm import Session
 from backend.schemas.user_schema import UserCreate, UserResponse
 from backend.schemas.auth_schema import LoginRequest, LoginResponse
@@ -6,6 +7,7 @@ from backend.services.user_service import (
     authenticate_user,
     get_user_by_id,
     register_user,
+    get_race_date,
 )
 from backend.db.session import get_db
 
@@ -37,7 +39,7 @@ def login_user(request: Request, data: LoginRequest, db: Session = Depends(get_d
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
         request.session["user_id"] = user.id
-        return user
+        return {"user": user}
 
     except HTTPException:
         raise
@@ -49,14 +51,38 @@ def login_user(request: Request, data: LoginRequest, db: Session = Depends(get_d
 # Register new user
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
+    print("Registering new user...")
+    print(f"Registering user: {user.email}")
     try:
         new_user = await register_user(db, user)
-        return new_user
+        return {"user": new_user}
+
     except HTTPException:
         raise
     except Exception as e:
         print(f"Register route crashed: {e}")
         raise HTTPException(status_code=500, detail="Registration failed")
+
+
+# Get closest race date for a user
+@router.get("/get-next-race/{user_id}", response_model=date)
+def get_next(user_id: int, db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_id(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        race_date = get_race_date(user)
+        if not race_date:
+            raise HTTPException(status_code=404, detail="No upcoming race found")
+
+        return race_date
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Get next race route crashed: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # Logout user

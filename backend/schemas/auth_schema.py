@@ -10,4 +10,3 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     user: Optional[UserResponse]
-    is_new: bool
